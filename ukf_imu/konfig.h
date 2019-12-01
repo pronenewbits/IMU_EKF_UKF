@@ -17,7 +17,7 @@
 
 #define MATRIX_MAXIMUM_SIZE     (10)        /* Ukuran maksimum matrix yang diperbolehkan */
 
-#if (1)
+#if (0)
     #define float_prec      float
     #define float_prec_ZERO (1e-8)
 #else
