@@ -17,12 +17,18 @@
 
 #define MATRIX_MAXIMUM_SIZE     (10)        /* Ukuran maksimum matrix yang diperbolehkan */
 
-#if (0)
+#define PAKAI_FLOAT         1
+#define PAKAI_DOUBLE        2
+#define PRESISI_FPU         (PAKAI_DOUBLE)
+
+#if (PRESISI_FPU == PAKAI_FLOAT)
     #define float_prec      float
     #define float_prec_ZERO (1e-8)
-#else
+#elif (PRESISI_FPU == PAKAI_DOUBLE)
     #define float_prec      double
     #define float_prec_ZERO (1e-15)
+#else
+    #error("Kepresisian FPU belum didefinisi!");
 #endif
 
 // -0.183381	-0.047919	-0.981873	

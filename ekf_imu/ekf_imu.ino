@@ -104,7 +104,8 @@ void loop() {
     if (Serial.available()) {
         cmd = Serial.read();
         if (cmd == 'v') {
-            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "Kode EKF di Teensy 4.0, diadopsi agar bisa terhubung ke demo Processing FreeIMU");
+//             snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "Kode EKF di Teensy 4.0 terhubung ke demo Processing FreeIMU (Resolusi %s)", (PRESISI_FPU == PAKAI_FLOAT)?"Float32":"Double64");
+            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "EKF di Teensy 4.0 (Resolusi %s)", (PRESISI_FPU == PAKAI_FLOAT)?"Float32":"Double64");
             Serial.print(bufferTxSer);
             Serial.print('\n');
         } else if (cmd == 'q') {
