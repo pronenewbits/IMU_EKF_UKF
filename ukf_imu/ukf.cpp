@@ -65,17 +65,6 @@
  *                  IMU (Inertial measurement unit) dengan X = [quaternion], dengan asumsi IMU
  *                  awalnya menghadap ke atas tanpa rotasi, X~(k=0|k=0) = [1, 0, 0, 0]'
  *
- *        Variabel:
- *          X_kira(k)    : X~(k) = X_Estimasi(k) kalman filter   : Nx1
- *          X_dot_kira(k): X*~(k) = dX~(k)/dt                    : Nx1
- *          P(k)         : P(k) = matrix kovarian kalman filter  : NxN
- *          P_dot(k)     : P*(k) = dP(k)/dt                      : NxN
- *          A(k)         : Linearisasi dari fungsi non-linear f  : NxN
- *          C(k)         : Linearisasi dari fungsi non-linear h  : ZxN
- *          Q            : Matrix kovarian dari w(k)             : NxN
- *          R            : Matrix kovarian dari v(k)             : ZxZ
- *
- *
  **********************************************************************************************************************/
 
 #include "ukf.h"
