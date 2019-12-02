@@ -49,9 +49,9 @@
  * 
  *              Update the estimated system:
  *                  CrossCov(k) = sum(Wc(i)*dSigX(i)*dSigZ(i)')     ; i=1...(2N+1)      ...{UKF_8}
- *                  K           = CrossCov(k) * dSigZ^-1                                ...{UKF_9}
+ *                  K           = CrossCov(k) * Pz^-1                                   ...{UKF_9}
  *                  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k+1))                    ...{UKF_10}
- *                  P(k|k)      = P(k|k-1) - K*dSigZ*K'                                 ...{UKF_11}
+ *                  P(k|k)      = P(k|k-1) - K*Pz*K'                                    ...{UKF_11}
  *
  *        *Catatan tambahan:
  *              - Perhatikan persamaan f pada {UKF_4} adalah update versi diskrit!!!!   X~(k+1) = f(X~(k),u(k))
@@ -65,6 +65,17 @@
  *                  IMU (Inertial measurement unit) dengan X = [quaternion], dengan asumsi IMU
  *                  awalnya menghadap ke atas tanpa rotasi, X~(k=0|k=0) = [1, 0, 0, 0]'
  *
+ *        Variabel:
+ *          X_kira(k)    : X~(k) = X_Estimasi(k) kalman filter   : Nx1
+ *          X_dot_kira(k): X*~(k) = dX~(k)/dt                    : Nx1
+ *          P(k)         : P(k) = matrix kovarian kalman filter  : NxN
+ *          P_dot(k)     : P*(k) = dP(k)/dt                      : NxN
+ *          A(k)         : Linearisasi dari fungsi non-linear f  : NxN
+ *          C(k)         : Linearisasi dari fungsi non-linear h  : ZxN
+ *          Q            : Matrix kovarian dari w(k)             : NxN
+ *          R            : Matrix kovarian dari v(k)             : ZxZ
+ *
+ *
  **********************************************************************************************************************/
 
 #include "ukf.h"
@@ -73,10 +84,19 @@
 
 UKF::UKF(const float_prec PInit, const float_prec QInit, const float_prec RInit)
 {
-    float_prec _alpha   = 1e-3;     // Default, tunable
-    float_prec _ki      = 0.0;      // Default, tunable
-    float_prec _beta    = 2.0;      // Default, tunable
-    float_prec _lambda;
+    /* Van der. Merwe, .. (2004). Sigma-Point Kalman Filters for Probabilistic Inference in Dynamic State-Space Models 
+     * (Ph.D. thesis). Oregon Health & Science University. Page 6:
+     * 
+     * where λ = α2(L+κ)−L is a scaling parameter. α determines the spread of the sigma points around ̄x and is usually 
+     * set to a small positive value (e.g. 1e−2 ≤ α ≤ 1). κ is a secondary scaling parameter which is usually set to either 
+     * 0 or 3−L (see [45] for details), and β is an extra degree of freedom scalar parameter used to incorporate any extra 
+     * prior knowledge of the distribution of x (for Gaussian distributions, β = 2 is optimal).
+     */
+    
+    float_prec _alpha   = 1e-2;
+    float_prec _k       = 0.0;
+    float_prec _beta    = 2.0;
+    float_prec _lambda  = (_alpha*_alpha)*(SS_X_LEN+_k) - SS_X_LEN;
 
     X_Est.vIsiNol();
     X_Sigma.vIsiNol();
@@ -103,17 +123,15 @@ UKF::UKF(const float_prec PInit, const float_prec QInit, const float_prec RInit)
     Q.vIsiDiagonal(QInit);
     R.vIsiDiagonal(RInit);
 
-    _lambda = (_alpha*_alpha)*(SS_X_LEN+_ki) - SS_X_LEN;
-    UKFconst = SS_X_LEN + _lambda;
 
-    Wm[0][0] = _lambda/UKFconst;
+    Wm[0][0] = _lambda/(SS_X_LEN + _lambda);
     for (int32_t _i = 1; _i < Wm.i32getKolom(); _i++) {
-        Wm[0][_i] = 0.5/UKFconst;
+        Wm[0][_i] = 0.5/(SS_X_LEN + _lambda);
     }
     Wc = Wm.Salin();
     Wc[0][0] = Wc[0][0] + (1.0-(_alpha*_alpha)+_beta);
 
-    UKFconst = sqrt(UKFconst);
+    UKFconst = sqrt((SS_X_LEN + _lambda));
 }
 
 void UKF::vReset(const float_prec PInit, const float_prec QInit, const float_prec RInit)
@@ -148,7 +166,7 @@ void UKF::vUpdate(Matrix &Z, Matrix &U)
     }
     CrossCov = DX * (DZ.Transpose());
 
-    /*  K           = CrossCov(k) * dSigZ^-1                                ...{UKF_9}  */
+    /*  K           = CrossCov(k) * Pz^-1                                   ...{UKF_9}  */
     Matrix PZ_Inv = PZ.Invers();
     if (!PZ_Inv.bCekMatrixValid()) {
         /* return false; */
@@ -160,7 +178,7 @@ void UKF::vUpdate(Matrix &Z, Matrix &U)
     Err = Z - Z_Est;
     X_Est = X_Est + (Gain*Err);
 
-    /*  P(k|k)      = P(k|k-1) - K*dSigZ*K'                                 ...{UKF_11}  */
+    /*  P(k|k)      = P(k|k-1) - K*Pz*K'                                    ...{UKF_11}  */
     P = P - (Gain * PZ * Gain.Transpose());
 
 
