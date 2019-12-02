@@ -26,35 +26,37 @@
  *                  Wc, Wm      = First order & second order weight
  *          Lakukan iterasi:
  *              Kalkulasi sigma point:
- *                  XSigma = [X~ Y+sqrt(C*P) Y-sqrt(C*P)    ; Y = [X~ ... X~], Y=NxN    ...{UKF_3}
- * 
+ *                  XSigma(k|k-1) = [X~ Y+sqrt(C*P) Y-sqrt(C*P)]    ; Y = [X~ ... X~]   ...{UKF_3}
+ *                                                                  ; Y=NxN
+ *                                                                  ; C = (N + Lambda)
  * 
  *              Unscented Transform XSigma [f,XSigma,U,Wm,Wc,Q] -> [X~,XSigma,P,dSigX]:
- *                  XSigma(k|k+1) = f(XSigma(k-1|k-1), u(k))                            ...{UKF_4}
- *                  X~(k|k+1) = sum(Wm(i) * XSigma(k|k+1)(i))    ; i = 1 ... (2N+1)     ...{UKF_5}
+ *                  XSigma(k|k-1) = f(XSigma(k-1|k-1), u(k))                            ...{UKF_4}
+ *                  X~(k|k-1) = sum(Wm(i) * XSigma(k|k-1)(i))       ; i = 1 ... (2N+1)  ...{UKF_5}
  * 
- *                  dSigX = XSigma(k|k+1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
- *                                                   ; Y(k)=Nx(2N+1)                    ...{UKF_6}
- *                  P(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q   ; i=1...(2N+1)       ...{UKF_7}
+ *                  dSigX = XSigma(k|k-1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
+ *                                                   ; Y(k) = Nx(2N+1)                  ...{UKF_6}
+ *                  P(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q    ; i = 1 ... (2N+1)  ...{UKF_7}
  *
  * 
  *              Unscented Transform ZSigma [h,XSigma,U,Wm,Wc,R] -> [Z~,ZSigma,Pz,dSigZ]:
- *                  ZSigma(k|k+1) = h(XSigma(k|k-1), u(k))                              ...{UKF_4}
- *                  Z~(k|k+1) = sum(Wm(i) * ZSigma(k|k+1)(i))    ; i = 1 ... (2N+1)     ...{UKF_5}
+ *                  ZSigma(k|k-1) = h(XSigma(k|k-1), u(k))                              ...{UKF_4}
+ *                  Z~(k|k-1) = sum(Wm(i) * ZSigma(k|k-1)(i))       ; i = 1 ... (2N+1)  ...{UKF_5}
  * 
- *                  dSigZ = ZSigma(k|k+1)(i) - Y(k)  ; Y(k) = [Z~(k|k-1) .. Z~(k|k-1)]
- *                                                   ; Y(k)=Zx(2N+1)                    ...{UKF_6}
- *                  Pz(k|k-1) = sum(Wc(i)*dSigZ(i)*dSigZ(i)') + R   ; i=1...(2N+1)      ...{UKF_7}
+ *                  dSigZ = ZSigma(k|k-1)(i) - Y(k)  ; Y(k) = [Z~(k|k-1) .. Z~(k|k-1)]
+ *                                                   ; Y(k) = Zx(2N+1)                  ...{UKF_6}
+ *                  Pz(k|k-1) = sum(Wc(i)*dSigZ(i)*dSigZ(i)') + R   ; i = 1 ... (2N+1)  ...{UKF_7}
  * 
  * 
  *              Update the estimated system:
- *                  CrossCov(k) = sum(Wc(i)*dSigX(i)*dSigZ(i)')     ; i=1...(2N+1)      ...{UKF_8}
- *                  K           = CrossCov(k) * dSigZ^-1                                ...{UKF_9}
- *                  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k+1))                    ...{UKF_10}
- *                  P(k|k)      = P(k|k-1) - K*dSigZ*K'                                 ...{UKF_11}
+ *                  CrossCov(k) = sum(Wc(i)*dSigX(i)*dSigZ(i)')     ; i = 1 ... (2N+1)  ...{UKF_8}
+ *                  K           = CrossCov(k) * Pz^-1                                   ...{UKF_9}
+ *                  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k-1))                    ...{UKF_10}
+ *                  P(k|k)      = P(k|k-1) - K*Pz*K'                                    ...{UKF_11}
  *
  *        *Catatan tambahan:
- *              - Perhatikan persamaan f pada {UKF_4} adalah update versi diskrit!!!!   X~(k+1) = f(X~(k),u(k))
+ *              - Perhatikan persamaan f pada {UKF_4} adalah update versi diskrit!!!!
+ *                              X~(k) = f(X~(k-1),u(k))
  *              - Dengan asumsi masukan plant ZOH, u(k) = u(k|k-1),
  *                  Dengan asumsi tambahan observer dijalankan sebelum pengendali, u(k|k-1) = u(k-1),
  *                  sehingga u(k) [untuk perhitungan kalman] adalah nilai u(k-1) [dari pengendali].
@@ -64,6 +66,12 @@
  *                  informasi plant-spesific. Misal pada implementasi EKF untuk memfilter sensor
  *                  IMU (Inertial measurement unit) dengan X = [quaternion], dengan asumsi IMU
  *                  awalnya menghadap ke atas tanpa rotasi, X~(k=0|k=0) = [1, 0, 0, 0]'
+ *
+ *        Variabel:
+ *          X_kira(k)    : X~(k) = X_Estimasi(k) kalman filter   : Nx1
+ *          P(k)         : P(k) = matrix kovarian kalman filter  : NxN
+ *          Q            : Matrix kovarian dari w(k)             : NxN
+ *          R            : Matrix kovarian dari v(k)             : ZxZ
  *
  **********************************************************************************************************************/
 

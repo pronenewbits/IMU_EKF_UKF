@@ -26,35 +26,37 @@
  *                  Wc, Wm      = First order & second order weight
  *          Lakukan iterasi:
  *              Kalkulasi sigma point:
- *                  XSigma = [X~ Y+sqrt(C*P) Y-sqrt(C*P)    ; Y = [X~ ... X~], Y=NxN    ...{UKF_3}
- * 
+ *                  XSigma(k|k-1) = [X~ Y+sqrt(C*P) Y-sqrt(C*P)]    ; Y = [X~ ... X~]   ...{UKF_3}
+ *                                                                  ; Y=NxN
+ *                                                                  ; C = (N + Lambda)
  * 
  *              Unscented Transform XSigma [f,XSigma,U,Wm,Wc,Q] -> [X~,XSigma,P,dSigX]:
- *                  XSigma(k|k+1) = f(XSigma(k-1|k-1), u(k))                            ...{UKF_4}
- *                  X~(k|k+1) = sum(Wm(i) * XSigma(k|k+1)(i))    ; i = 1 ... (2N+1)     ...{UKF_5}
+ *                  XSigma(k|k-1) = f(XSigma(k-1|k-1), u(k))                            ...{UKF_4}
+ *                  X~(k|k-1) = sum(Wm(i) * XSigma(k|k-1)(i))       ; i = 1 ... (2N+1)  ...{UKF_5}
  * 
- *                  dSigX = XSigma(k|k+1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
- *                                                   ; Y(k)=Nx(2N+1)                    ...{UKF_6}
- *                  P(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q   ; i=1...(2N+1)       ...{UKF_7}
+ *                  dSigX = XSigma(k|k-1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
+ *                                                   ; Y(k) = Nx(2N+1)                  ...{UKF_6}
+ *                  P(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q    ; i = 1 ... (2N+1)  ...{UKF_7}
  *
  * 
  *              Unscented Transform ZSigma [h,XSigma,U,Wm,Wc,R] -> [Z~,ZSigma,Pz,dSigZ]:
- *                  ZSigma(k|k+1) = h(XSigma(k|k-1), u(k))                              ...{UKF_4}
- *                  Z~(k|k+1) = sum(Wm(i) * ZSigma(k|k+1)(i))    ; i = 1 ... (2N+1)     ...{UKF_5}
+ *                  ZSigma(k|k-1) = h(XSigma(k|k-1), u(k))                              ...{UKF_4}
+ *                  Z~(k|k-1) = sum(Wm(i) * ZSigma(k|k-1)(i))       ; i = 1 ... (2N+1)  ...{UKF_5}
  * 
- *                  dSigZ = ZSigma(k|k+1)(i) - Y(k)  ; Y(k) = [Z~(k|k-1) .. Z~(k|k-1)]
- *                                                   ; Y(k)=Zx(2N+1)                    ...{UKF_6}
- *                  Pz(k|k-1) = sum(Wc(i)*dSigZ(i)*dSigZ(i)') + R   ; i=1...(2N+1)      ...{UKF_7}
+ *                  dSigZ = ZSigma(k|k-1)(i) - Y(k)  ; Y(k) = [Z~(k|k-1) .. Z~(k|k-1)]
+ *                                                   ; Y(k) = Zx(2N+1)                  ...{UKF_6}
+ *                  Pz(k|k-1) = sum(Wc(i)*dSigZ(i)*dSigZ(i)') + R   ; i = 1 ... (2N+1)  ...{UKF_7}
  * 
  * 
  *              Update the estimated system:
- *                  CrossCov(k) = sum(Wc(i)*dSigX(i)*dSigZ(i)')     ; i=1...(2N+1)      ...{UKF_8}
+ *                  CrossCov(k) = sum(Wc(i)*dSigX(i)*dSigZ(i)')     ; i = 1 ... (2N+1)  ...{UKF_8}
  *                  K           = CrossCov(k) * Pz^-1                                   ...{UKF_9}
- *                  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k+1))                    ...{UKF_10}
+ *                  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k-1))                    ...{UKF_10}
  *                  P(k|k)      = P(k|k-1) - K*Pz*K'                                    ...{UKF_11}
  *
  *        *Catatan tambahan:
- *              - Perhatikan persamaan f pada {UKF_4} adalah update versi diskrit!!!!   X~(k+1) = f(X~(k),u(k))
+ *              - Perhatikan persamaan f pada {UKF_4} adalah update versi diskrit!!!!
+ *                              X~(k) = f(X~(k-1),u(k))
  *              - Dengan asumsi masukan plant ZOH, u(k) = u(k|k-1),
  *                  Dengan asumsi tambahan observer dijalankan sebelum pengendali, u(k|k-1) = u(k-1),
  *                  sehingga u(k) [untuk perhitungan kalman] adalah nilai u(k-1) [dari pengendali].
@@ -67,14 +69,9 @@
  *
  *        Variabel:
  *          X_kira(k)    : X~(k) = X_Estimasi(k) kalman filter   : Nx1
- *          X_dot_kira(k): X*~(k) = dX~(k)/dt                    : Nx1
  *          P(k)         : P(k) = matrix kovarian kalman filter  : NxN
- *          P_dot(k)     : P*(k) = dP(k)/dt                      : NxN
- *          A(k)         : Linearisasi dari fungsi non-linear f  : NxN
- *          C(k)         : Linearisasi dari fungsi non-linear h  : ZxN
  *          Q            : Matrix kovarian dari w(k)             : NxN
  *          R            : Matrix kovarian dari v(k)             : ZxZ
- *
  *
  **********************************************************************************************************************/
 
@@ -92,30 +89,14 @@ UKF::UKF(const float_prec PInit, const float_prec QInit, const float_prec RInit)
      * 0 or 3−L (see [45] for details), and β is an extra degree of freedom scalar parameter used to incorporate any extra 
      * prior knowledge of the distribution of x (for Gaussian distributions, β = 2 is optimal).
      */
-    
     float_prec _alpha   = 1e-2;
     float_prec _k       = 0.0;
     float_prec _beta    = 2.0;
     float_prec _lambda  = (_alpha*_alpha)*(SS_X_LEN+_k) - SS_X_LEN;
-
-    X_Est.vIsiNol();
-    X_Sigma.vIsiNol();
-    Z_Est.vIsiNol();
-    Z_Sigma.vIsiNol();
+    
     P.vIsiNol();
-    P_Chol.vIsiNol();
-    PZ.vIsiNol();
-    DX.vIsiNol();
-    DZ.vIsiNol();
-    CrossCov.vIsiNol();
-    Wm.vIsiNol();
-    Wc.vIsiNol();
     Q.vIsiNol();
     R.vIsiNol();
-    Err.vIsiNol();
-    Gain.vIsiNol();
-
-
     X_Est.vIsiNol();
     X_Est[0][0] = 1.0;       /* Quaternion(k = 0) = [1 0 0 0]' */
 
@@ -136,25 +117,25 @@ UKF::UKF(const float_prec PInit, const float_prec QInit, const float_prec RInit)
 
 void UKF::vReset(const float_prec PInit, const float_prec QInit, const float_prec RInit)
 {
-    X_Est.vIsiNol();
-    X_Est[0][0] = 1.0;       /* Quaternion(k = 0) = [1 0 0 0]' */
-
     P.vIsiDiagonal(PInit);
     Q.vIsiDiagonal(QInit);
     R.vIsiDiagonal(RInit);
+    X_Est.vIsiNol();
+    X_Est[0][0] = 1.0;       /* Quaternion(k = 0) = [1 0 0 0]' */
 }
 
 void UKF::vUpdate(Matrix &Z, Matrix &U)
 {
     /* Dijalankan satu kali per waktu cuplik */
 
-
     /*  XSigma = [X~ Y+sqrt(C*P) Y-sqrt(C*P)    ; Y = [X~ ... X~], Y=NxN    ...{UKF_3}  */
     bCalculateSigmaPoint();
+    
     /* Unscented Transform XSigma [f,XSigma,U,Wm,Wc,Q] -> [X~,XSigma,P,dSigX]: ======== */
-    bUnscentedTransform(X_Est, X_Sigma, P, DX, (&UKF::vUpdateNonlinearX), X_Sigma, U, Wm, Wc, Q);
+    bUnscentedTransform(X_Est, X_Sigma, P, DX, (&UKF::vUpdateNonlinearX), X_Sigma, U, Wm, Wc, Q);       /* {UKF_4} - {UKF_7} */
+    
     /* Unscented Transform ZSigma [h,XSigma,U,Wm,Wc,R] -> [Z~,ZSigma,Pz,dSigZ]: ======= */
-    bUnscentedTransform(Z_Est, Z_Sigma, PZ, DZ, (&UKF::vUpdateNonlinearZ), X_Sigma, U, Wm, Wc, R);
+    bUnscentedTransform(Z_Est, Z_Sigma, PZ, DZ, (&UKF::vUpdateNonlinearZ), X_Sigma, U, Wm, Wc, R);      /* {UKF_4} - {UKF_7} */
 
 
     /* Update the estimated system: =================================================== */
@@ -171,17 +152,16 @@ void UKF::vUpdate(Matrix &Z, Matrix &U)
     if (!PZ_Inv.bCekMatrixValid()) {
         /* return false; */
         this->vReset(1000., Q[0][0], R[0][0]);
+        return;
     }
     Gain = CrossCov * PZ_Inv;
 
-    /*  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k+1))                    ...{UKF_10}  */
+    /*  X~(k|k)     = X~(k|k-1) + K * (Z(k) - Z~(k|k-1))                    ...{UKF_10}  */
     Err = Z - Z_Est;
     X_Est = X_Est + (Gain*Err);
 
     /*  P(k|k)      = P(k|k-1) - K*Pz*K'                                    ...{UKF_11}  */
     P = P - (Gain * PZ * Gain.Transpose());
-
-
 
 
     /* ======= Tambahan untuk plant berupa sistem inersia berbasis quaternion ======= */
@@ -197,15 +177,18 @@ void UKF::vUpdate(Matrix &Z, Matrix &U)
 
 bool UKF::bCalculateSigmaPoint(void)
 {
-    /* XSigma = [X~ Y+sqrt(C*P) Y-sqrt(C*P)    ; Y = [X~ ... X~], Y=NxN    ...{UKF_3}  */
+    /* XSigma(k|k-1) = [X~ Y+sqrt(C*P) Y-sqrt(C*P)]     ; Y = [X~ ... X~]   ...{UKF_3}
+     *                                                  ; Y=NxN
+     *                                                  ; C = (N + Lambda)
+     */
     
-    
+    /* Gunakan Cholesky Decomposition untuk menghitung sqrt(P) */
     P_Chol = P.CholeskyDec();
     if (!P_Chol.bCekMatrixValid()) {
         /* System Fail */
         return false;
     }
-    P_Chol = P_Chol * UKFconst;
+    P_Chol = P_Chol * UKFconst;     /* UKFconst = sqrt(C), dihitung di fungsi Constructor UKF() */
 
     /* _xSigma = [x Y+C*sqrt(P) Y-C*sqrt(P)], dimana
      *  Y = [x x ... x] dengan ukuran (len(x) x len(x))     (misal x = 3x1, Y = 3x3)
@@ -231,8 +214,8 @@ bool UKF::bUnscentedTransform(Matrix &Out, Matrix &OutSigma, Matrix &P, Matrix &
                               Matrix &InpSigma, Matrix &InpVector,
                               Matrix &_Wm, Matrix &_Wc, Matrix &_CovNoise)
 {
-    /* XSigma(k|k+1) = f(XSigma(k-1|k-1), u(k))                            ...{UKF_4}  */
-    /* X~(k|k+1) = sum(Wm(i) * XSigma(k|k+1)(i))    ; i = 1 ... (2N+1)     ...{UKF_5}  */
+    /* XSigma(k|k-1) = f(XSigma(k-1|k-1), u(k))                             ...{UKF_4}  */
+    /* X~(k|k-1) = sum(Wm(i) * XSigma(k|k-1)(i))    ; i = 1 ... (2N+1)      ...{UKF_5}  */
     Out.vIsiNol();
     for (int32_t _j = 0; _j < InpSigma.i32getKolom(); _j++) {
         /* Transformasi non-linear per kolom */
@@ -249,15 +232,15 @@ bool UKF::bUnscentedTransform(Matrix &Out, Matrix &OutSigma, Matrix &P, Matrix &
         Out = Out + _AuxSigma2;
     }
 
-    /* dSigX = XSigma(k|k+1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
-    /*                                  ; Y(k)=Nx(2N+1)                    ...{UKF_6}  */
+    /* dSigX = XSigma(k|k-1)(i) - Y(k)  ; Y(k) = [X~(k|k-1) .. X~(k|k-1)]
+    /*                                  ; Y(k)=Nx(2N+1)                     ...{UKF_6}  */
     Matrix _AuxSigma1(OutSigma.i32getBaris(), OutSigma.i32getKolom());
     for (int32_t _j = 0; _j < OutSigma.i32getKolom(); _j++) {
         _AuxSigma1 = _AuxSigma1.InsertVector(Out, _j);
     }
     DSig = OutSigma - _AuxSigma1;
 
-    /* Px(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q   ; i=1...(2N+1)      ...{UKF_7}  */
+    /* P(k|k-1) = sum(Wc(i)*dSigX(i)*dSigX(i)') + Q   ; i=1...(2N+1)        ...{UKF_7}  */
     _AuxSigma1 = DSig.Salin();
     for (int32_t _i = 0; _i < DSig.i32getBaris(); _i++) {
         for (int32_t _j = 0; _j < DSig.i32getKolom(); _j++) {
@@ -288,6 +271,12 @@ void UKF::vUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
      *  q1_dot = 1/2. * ( p*q0 +   0  + r*q2 - q*q3)
      *  q2_dot = 1/2. * ( q*q0 - r*q1 +  0   + p*q3)
      *  q3_dot = 1/2. * ( r*q0 + q*q1 - p*q2 +  0  )
+     * 
+     * Euler method for integration:
+     *  q0 = q0 + q0_dot * dT;
+     *  q1 = q1 + q1_dot * dT;
+     *  q2 = q2 + q2_dot * dT;
+     *  q3 = q3 + q3_dot * dT;
      */
 
     X_Next[0][0] = (0.5 * (+0.00 -p*q1 -q*q2 -r*q3))*SS_DT + q0;
