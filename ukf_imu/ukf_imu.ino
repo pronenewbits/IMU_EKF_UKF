@@ -67,14 +67,6 @@ void serialFloatPrint(float f) {
 
 
 void loop() {
-    u64lamaUKF = micros();
-    delay(1000);
-    u64lamaUKF = (micros() - u64lamaUKF);
-    snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "Lama UKF = %lu us", (uint32_t)u64lamaUKF);
-    Serial.println(bufferTxSer); 
-
-
-
     if (timerUKF > SS_DT_MILIS) {
         /* Freq UKF = 50 Hz */
         /* Update data mentah IMU */
@@ -104,8 +96,6 @@ void loop() {
         u64lamaUKF = micros();
         UKF_IMU.vUpdate(Z, U);
         u64lamaUKF = (micros() - u64lamaUKF);
-//         snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "Lama UKF = %lu us", (uint32_t)u64lamaUKF);
-//         Serial.println(bufferTxSer); 
         timerUKF = 0;
     }
     
@@ -113,7 +103,6 @@ void loop() {
         cmd = Serial.read();
         if (cmd == 'v') {
             snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "UKF di Teensy 4.0 (Resolusi %s)", (PRESISI_FPU == PAKAI_FLOAT)?"Float32":"Double64");
-//             snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "Kode UKF di Teensy 4.0, diadopsi agar bisa terhubung ke demo Processing FreeIMU");
             Serial.print(bufferTxSer);
             Serial.print('\n');
         } else if (cmd == 'q') {
