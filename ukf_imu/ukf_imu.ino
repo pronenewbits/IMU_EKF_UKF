@@ -20,7 +20,8 @@ float_prec BIAS_MAG[3] = {8.9254665, 8.040476,  -25.126487};
 elapsedMillis timerLed, timerUKF;
 uint64_t u64lamaUKF;
 
-UKF UKF_IMU(1000., 1e-6, 0.015);
+UKF UKF_IMU(1000., 1e-6, 0.0015);       /* Best */
+// UKF UKF_IMU(1000., 1e-7, 0.0015);       /* meh */
 Matrix Z(SS_Z_LEN, 1);
 Matrix U(SS_U_LEN, 1);
 Matrix dataQuaternion(SS_X_LEN, 1);
@@ -68,7 +69,7 @@ void serialFloatPrint(float f) {
 
 void loop() {
     if (timerUKF > SS_DT_MILIS) {
-        /* Freq UKF = 50 Hz */
+        /* Freq UKF = 100 Hz */
         /* Update data mentah IMU */
         IMU.readSensor();
         Z[0][0] = IMU.getAccelX_mss();
@@ -111,7 +112,6 @@ void loop() {
             while (!Serial.available());
             uint8_t count = Serial.read();
             for (uint8_t i = 0; i < count; i++) {
-                
                 serialFloatPrint(dataQuaternion[0][0]);
                 Serial.print(",");
                 serialFloatPrint(dataQuaternion[1][0]);
