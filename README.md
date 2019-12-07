@@ -15,6 +15,7 @@ Contoh output magnetometer yang belum dikalibrasi:
 
 
 Setelah dikalibrasi hard-iron:
+
 ![Alt text](2019-12-01_magneto_gabung_Kalib.png "Calibrated Magnetometer")
 
 (TODO: implementasi kalibrasi soft-iron).
