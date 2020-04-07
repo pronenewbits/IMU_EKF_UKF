@@ -1,7 +1,7 @@
 # Kode Teensy 4.0 untuk Extended Kalman Filter & Unscented Kalman Filter
 
 
-# Hello, it seems you got here from ancient link, please go to [this repo for the latest updated cpde \(and more description\)!](https://github.com/pronenewbits/Arduino_AHRS_System).
+# Hello, it seems you got here from ancient link, please go to [this repo for the latest updated code \(and more description\)!](https://github.com/pronenewbits/Arduino_AHRS_System).
 
 &nbsp;
 
