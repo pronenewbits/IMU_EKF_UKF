@@ -1,11 +1,21 @@
 # Kode Teensy 4.0 untuk Extended Kalman Filter & Unscented Kalman Filter
 
 
-Hello, it seems you got here from ancient link, please go to [here for the latest updated repository \(and more explanation\)!](https://github.com/pronenewbits/Arduino_AHRS_System).
+# Hello, it seems you got here from ancient link, please go to [this repo for the latest updated cpde \(and more description\)!](https://github.com/pronenewbits/Arduino_AHRS_System).
 
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
 
 
 Koneksi Teensy 4.0 dengan MPU-9250:
+
 ![Alt text](MPU9250_Connection.png "MPU9250 Connection")
 
 
